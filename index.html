@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#101319">
+<meta name="apple-mobile-web-app-title" content="אימונים">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<title>יומן אימונים</title>
+<style>
+  :root{
+    --bg:#101319; --surf:#191D25; --surf2:#212630; --line:#2B313D;
+    --text:#E9E7E2; --muted:#79818F; --ready:#5FB98E; --warn:#E5806B;
+    --acc:#D9A441;
+    --mono:ui-monospace,'SF Mono','Roboto Mono',Menlo,monospace;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;background:var(--bg);color:var(--text);
+    font-family:system-ui,-apple-system,'Segoe UI',sans-serif;
+    direction:rtl;padding-bottom:calc(96px + env(safe-area-inset-bottom));
+    overscroll-behavior-y:contain;
+  }
+  .pad{padding:0 14px}
+  button{font-family:inherit;cursor:pointer;border:none}
+  input,select{font-family:inherit}
+  .num{font-family:var(--mono);font-variant-numeric:tabular-nums;direction:ltr;display:inline-block}
+
+  header{background:var(--surf);border-bottom:1px solid var(--line);
+    padding:calc(12px + env(safe-area-inset-top)) 14px 10px}
+  .row{display:flex;gap:6px}
+  .pill{flex:1;padding:10px 0;border-radius:9px;background:var(--surf2);
+    color:var(--muted);font-weight:700;font-size:14px}
+  .pill.on{background:var(--acc);color:#101319}
+  .nameIn{width:100%;background:transparent;border:none;color:var(--muted);
+    font-size:12px;text-align:right;padding:6px 0 0;outline:none}
+
+  .card{background:var(--surf);border:1px solid var(--line);border-radius:12px;
+    margin-bottom:10px;overflow:hidden}
+  .exHead{width:100%;background:none;padding:13px;text-align:right;color:var(--text);
+    display:flex;align-items:center;gap:10px}
+  .exName{font-weight:600;font-size:14.5px;margin-bottom:2px}
+  .exSpec{font-size:11.5px;color:var(--muted);font-family:var(--mono);direction:ltr;text-align:right}
+  .badge{background:var(--ready);color:#101319;font-size:10px;font-weight:800;
+    padding:3px 7px;border-radius:5px;white-space:nowrap}
+  .idx{font-family:var(--mono);font-size:12px;color:var(--acc);min-width:16px}
+
+  .body{padding:0 13px 13px}
+  .prev{display:flex;justify-content:space-between;align-items:center;background:var(--surf2);
+    border-radius:8px;padding:7px 10px;margin-bottom:10px;font-size:11px;color:var(--muted)}
+  .ghost{background:none;border:1px solid var(--line);color:var(--acc);font-size:11px;
+    padding:5px 9px;border-radius:6px}
+  .lab{font-size:10px;color:var(--muted);letter-spacing:.06em}
+  .setRow{display:flex;align-items:center;gap:4px;margin-bottom:7px}
+  .stp{width:36px;height:44px;background:var(--surf2);color:var(--muted);
+    font-size:20px;border-radius:8px;line-height:1;flex-shrink:0}
+  .fld{height:44px;background:var(--bg);border:1px solid var(--line);border-radius:8px;
+    color:var(--text);font-family:var(--mono);font-size:17px;text-align:center;padding:0;outline:none}
+  .fld:focus{border-color:var(--acc)}
+  .dot{width:10px;height:10px;border-radius:5px;background:var(--line);flex-shrink:0;margin-right:2px}
+  .dot.ok{background:var(--ready)} .dot.out{background:var(--acc)}
+  .rest{width:100%;margin-top:6px;padding:10px;background:var(--surf2);border-radius:8px;
+    color:var(--muted);font-size:12.5px}
+
+  .stats{display:flex;justify-content:space-around;text-align:center;padding:14px}
+  .stat{font-family:var(--mono);font-size:22px;color:var(--acc)}
+  .chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;-webkit-overflow-scrolling:touch}
+  .chip{white-space:nowrap;padding:8px 12px;border-radius:8px;border:1px solid var(--line);
+    background:transparent;color:var(--muted);font-size:12.5px;font-weight:600}
+  .chip.on{background:var(--acc);color:#101319;border-color:var(--acc)}
+
+  .sesRow{display:flex;justify-content:space-between;font-size:12px;padding:2px 0}
+  .sesRow span:first-child{color:var(--muted);max-width:56%;overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap}
+
+  .bar{position:fixed;bottom:0;left:0;right:0;background:var(--surf);border-top:1px solid var(--line);
+    padding:12px 14px calc(12px + env(safe-area-inset-bottom));display:flex;gap:10px;align-items:center;z-index:10}
+  .primary{flex:1;padding:14px;border-radius:10px;font-weight:800;font-size:15px;
+    background:var(--acc);color:#101319}
+  .primary:disabled{background:var(--surf2);color:var(--muted)}
+  .timer{position:fixed;left:14px;right:14px;bottom:calc(84px + env(safe-area-inset-bottom));
+    background:var(--acc);color:#101319;border-radius:10px;padding:11px 14px;display:flex;
+    justify-content:space-between;align-items:center;font-weight:800;z-index:20}
+
+  .edRow{padding:11px 13px;border-bottom:1px solid var(--line)}
+  .edTop{display:flex;gap:5px;align-items:center;margin-bottom:8px}
+  .edBot{display:flex;gap:5px;align-items:flex-end}
+  .edF{display:flex;flex-direction:column;gap:3px}
+  .edRow input{background:var(--bg);border:1px solid var(--line);border-radius:7px;color:var(--text);
+    height:38px;font-size:16px;padding:0 7px;outline:none;min-width:0}
+  .edRow input.n{font-family:var(--mono);direction:ltr;text-align:center;width:46px;padding:0}
+  .edRow input:focus{border-color:var(--acc)}
+  .mini{width:38px;height:38px;background:var(--surf2);color:var(--muted);border-radius:7px;font-size:15px;flex-shrink:0}
+  .mini:disabled{opacity:.3}
+  .sheetBg{position:fixed;inset:0;background:rgba(8,10,14,.74);z-index:40}
+  .sheet{position:fixed;left:0;right:0;bottom:0;max-height:84vh;background:var(--surf);
+    border-radius:16px 16px 0 0;z-index:50;display:flex;flex-direction:column;
+    padding-bottom:env(safe-area-inset-bottom);border-top:1px solid var(--line)}
+  .grab{width:36px;height:4px;background:var(--line);border-radius:2px;margin:9px auto 4px}
+  .sheetHead{padding:4px 14px 10px;border-bottom:1px solid var(--line)}
+  .sheetBody{overflow-y:auto;padding:10px 14px 16px;-webkit-overflow-scrolling:touch}
+  .opt{width:100%;text-align:right;padding:13px 12px;border-radius:9px;background:var(--surf2);
+    color:var(--text);font-size:14px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .opt.cur{box-shadow:inset 0 0 0 1px var(--acc);color:var(--acc)}
+  .swap{background:var(--surf2);color:var(--muted);border-radius:8px;padding:5px 10px;font-size:11px;flex-shrink:0}
+  .empty{padding:28px;text-align:center;color:var(--muted);font-size:14px;line-height:1.7}
+  .note{font-size:11.5px;color:var(--muted);line-height:1.6;padding:0 2px 14px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="row" id="profs"></div>
+  <input class="nameIn" id="nameIn" placeholder="שם">
+</header>
+
+<div class="pad" style="padding-top:12px"><div class="row" id="tabs"></div></div>
+<div id="main" class="pad" style="padding-top:14px"></div>
+
+<div id="sheetBox"></div>
+<div id="timerBox"></div>
+<div id="barBox"></div>
+
+<script src="vendor/xlsx.full.min.js"></script>
+<script>
+/* ============ data ============ */
+var KEY='wlog:v1', DKEY='wlog:draft:v1', BKEY='wlog:backup:v1';
+var DRAFTS={}, dtim=null, storageOK=true;
+function dkey(){ return P+'|'+wk; }
+function D(){ if(!DRAFTS[dkey()]) DRAFTS[dkey()]={}; return DRAFTS[dkey()]; }
+function saveDrafts(){
+  clearTimeout(dtim); dtim=null;
+  try{ localStorage.setItem(DKEY,JSON.stringify(DRAFTS)); }catch(err){ storageOK=false; }
+}
+function queueDraft(){ if(dtim) return; dtim=setTimeout(saveDrafts,250); }
+function draftCount(k){ var d=DRAFTS[k]; if(!d) return 0; var n=0;
+  Object.keys(d).forEach(function(x){ (d[x]||[]).forEach(function(s){ if(s&&s.w&&s.r)n++; }); }); return n; }
+var e=function(name,sets,lo,hi,rir,rest,cat){return{name:name,sets:sets,lo:lo,hi:hi,rir:rir,rest:rest,cat:cat||'other'}};
+
+var SEED={
+ p1:{name:'נתנאל',accent:'#D9A441',program:{
+  A:[e('סקוואט',3,6,8,'2',120,'squat'),e('לחיצת חזה בשיפוע (משקולות)',4,8,10,'1-2',120,'hpress'),
+     e('חתירה בתמיכת חזה',4,8,10,'1-2',120,'hpull'),e('כפיפת ברכיים בישיבה',3,10,12,'1',90,'ham'),
+     e('הרחקת כתפיים בכבל',3,12,15,'0-1',90,'side'),e('פייס פול',3,15,20,'1',90,'rear'),
+     e('פשיטת מרפקים בחבל',2,10,12,'0-1',90,'tri')],
+  B:[e('דדליפט רומני',3,8,10,'2',120,'hinge'),e('מתח / פולי עליון',4,6,10,'1-2',120,'vpull'),
+     e('לחיצת חזה במוט',3,6,8,'2',120,'hpress'),e('לחיצת רגליים',3,10,12,'1-2',120,'squat'),
+     e('לחיצת כתפיים בישיבה',3,8,10,'1-2',90,'vpress'),e('פרפר הפוך',3,15,20,'1',90,'rear'),
+     e('כפיפת מרפקים בשיפוע',2,10,12,'0-1',90,'bi')],
+  C:[e('הק סקוואט / בולגרי',3,8,10,'2',120,'squat'),e('חתירה בכבל בישיבה',3,10,12,'1-2',120,'hpull'),
+     e('לחיצת חזה במכונה',3,8,12,'1-2',120,'hpress'),e('כפיפת ברכיים בישיבה',3,10,12,'1',90,'ham'),
+     e('הרחקת כתפיים בכבל',4,15,20,'0-1',90,'side'),e('פייס פול',3,15,20,'1',90,'rear'),
+     e('פשיטת מרפקים מעל הראש',2,10,12,'0-1',90,'tri'),e('הרמות רגליים בתלייה',2,10,15,'1',90,'abs')]},
+  sessions:[]},
+ p2:{name:'תוכנית 2',accent:'#D4708F',program:{
+  A:[e('סקוואט עמוק',3,8,10,'2-3',120,'squat'),e('דדליפט רומני',3,10,12,'2-3',120,'hinge'),
+     e('פולי עליון',3,10,12,'2',90,'vpull'),e('הרחקת ירכיים במכונה',3,15,20,'1-2',60,'abd'),
+     e('הרחקת כתפיים בכבל',3,12,15,'1-2',90,'side'),e('כפיפת בטן בכבל',3,12,15,'1-2',90,'abs')],
+  B:[e('סקוואט בולגרי',3,10,12,'2-3',120,'squat'),e('הרמת גו 45°',3,12,15,'2',90,'hinge'),
+     e('חתירה בכבל בישיבה',3,10,12,'2',90,'hpull'),e('לחיצת כתפיים בישיבה',3,10,12,'2',90,'vpress'),
+     e('הרחקת ירך בכבל בעמידה',3,15,20,'1-2',60,'abd'),e('הרמת ברכיים בתלייה',3,10,15,'1-2',90,'abs')],
+  C:[e('עלייה על ארגז',3,10,12,'2',120,'squat'),e('לחיצת רגליים',3,10,12,'2',120,'squat'),
+     e('כפיפת ברכיים בישיבה',3,10,12,'2',90,'ham'),e('לחיצת חזה במכונה',2,10,12,'2',90,'hpress'),
+     e('פרפר הפוך',3,15,20,'1-2',90,'rear'),e('הרחקת כתפיים בכבל',3,15,20,'1-2',90,'side'),
+     e('לחיצת פאלוף',2,10,12,'2',60,'abs')],},
+  sessions:[]}
+};
+
+
+var LIB={
+ squat:{t:'דחיפת רגליים',x:['סקוואט','סקוואט גובלט','סקוואט קדמי','הק סקוואט','לחיצת רגליים','סקוואט בולגרי','סקוואט במכונת סמית׳','לאנג׳ הליכה','עלייה על ארגז','סקוואט עמוק']},
+ hinge:{t:'כפיפת ירך · ישבן והמסטרינג',x:['דדליפט רומני','דדליפט רומני ברגל אחת','הרמת גו 45°','מורנינג גוד','דדליפט סומו','היפ תראסט','גשר ישבן במכונה','קיק-בק בכבל','הייפר-אקסטנשן הפוך']},
+ vpull:{t:'משיכה אנכית · רחב גבי',x:['מתח','מתח בתוספת משקל','פולי עליון','פולי עליון אחיזה ניטרלית','פולי עליון ביד אחת','פולאובר בכבל','משיכה במכונת אסיסט']},
+ hpull:{t:'משיכה אופקית · גב אמצעי',x:['חתירה בתמיכת חזה','חתירה בכבל בישיבה','חתירה במוט','חתירה עם משקולת ביד אחת','חתירה במכונה','חתירת T-bar','חתירה הפוכה במוט נמוך']},
+ hpress:{t:'דחיפה אופקית · חזה',x:['לחיצת חזה במוט','לחיצת חזה בשיפוע (משקולות)','לחיצת חזה שטוח (משקולות)','לחיצת חזה במכונה','מקבילים','שכיבות סמיכה בעומס','פרפר בכבלים','לחיצה במכונת סמית׳']},
+ vpress:{t:'דחיפה אנכית · כתפיים',x:['לחיצת כתפיים בישיבה','לחיצת כתפיים במוט','לחיצת כתפיים במכונה','לחיצת ארנולד','לחיצה בעמידה','לחיצה בכבלים']},
+ ham:{t:'בידוד המסטרינג',x:['כפיפת ברכיים בישיבה','כפיפת ברכיים בשכיבה','כפיפת ברכיים ברגל אחת','נורדיק קרל','כפיפת ברכיים בכבל']},
+ abd:{t:'הרחקת ירך · ישבן אמצעי',x:['הרחקת ירכיים במכונה','הרחקת ירך בכבל בעמידה','הרחקת ירך בשכיבה על הצד','הליכת מיני-בנד','הרחקה בישיבה עם גומייה','קלאם-של בעומס']},
+ side:{t:'כתף אמצעית',x:['הרחקת כתפיים בכבל','הרחקת כתפיים עם משקולות','הרחקת כתפיים במכונה','הרחקה ביד אחת בכבל','הרחקה בשכיבה על הצד','Lu raise']},
+ rear:{t:'כתף אחורית · גב עליון',x:['פייס פול','פרפר הפוך במכונה','הרחקה אחורית בשיפוע (משקולות)','חתירה לפנים בכבל גבוה','חתירה רחבה לצוואר','Band pull-apart']},
+ tri:{t:'יד אחורית',x:['פשיטת מרפקים בחבל','פשיטת מרפקים מעל הראש','לחיצה צרה','מקבילים','סקאל קראשר','קיק-בק בכבל','פשיטה במכונה']},
+ bi:{t:'יד קדמית',x:['כפיפת מרפקים בשיפוע','כפיפת מרפקים במוט','כפיפת מרפקים בכבל','פטיש','כפיפה במכונה','פריצ׳ר קרל','כפיפה בכבל בעמידה מאחור']},
+ abs:{t:'בטן וליבה',x:['כפיפת בטן בכבל','הרמת רגליים בתלייה','הרמת ברכיים בתלייה','כפיפת בטן במכונה','לחיצת פאלוף','דד באג','פלאנק בעומס','אב-וויל']},
+ quad:{t:'בידוד ארבע ראשי',x:['פשיטת ברכיים','סיסי סקוואט','לחיצת רגליים כפות נמוך']},
+ calf:{t:'תאומים',x:['הרמות עקבים בעמידה','הרמות עקבים בישיבה','הרמות עקבים בלחיצת רגליים']},
+ other:{t:'שונות',x:[]}
+};
+var CATS=['squat','hinge','vpull','hpull','hpress','vpress','ham','quad','abd','side','rear','tri','bi','abs','calf'];
+var NAME2CAT={}; CATS.forEach(function(c){ LIB[c].x.forEach(function(n){ NAME2CAT[n]=c; }); });
+
+var DB, P='p1', tab='log', wk='A', open=-1, chartEx=null, tsec=0, tid=null, sheet=null;
+
+function load(){
+  try{var raw=localStorage.getItem(KEY)||localStorage.getItem(BKEY);
+      DB = raw?JSON.parse(raw):JSON.parse(JSON.stringify(SEED));}
+  catch(err){ DB=JSON.parse(JSON.stringify(SEED)); }
+  try{ DRAFTS=JSON.parse(localStorage.getItem(DKEY)||'{}'); }catch(err){ DRAFTS={}; }
+  if(!DB.p1||!DB.p2) DB=JSON.parse(JSON.stringify(SEED));
+  ['p1','p2'].forEach(function(k){ ['A','B','C'].forEach(function(w){
+    (DB[k].program[w]||[]).forEach(function(x){ if(!x.cat) x.cat=NAME2CAT[x.name]||'other'; }); }); });
+}
+function save(){
+  try{
+    var s=JSON.stringify(DB);
+    localStorage.setItem(KEY,s);
+    if(localStorage.getItem(KEY)!==s) throw new Error('readback');
+    localStorage.setItem(BKEY,s);
+    storageOK=true;
+  }catch(err){
+    storageOK=false;
+    alert('השמירה נכשלה — האחסון בדפדפן חסום או מלא.\n\nאל תסגור את הדף. עבור ללשונית עריכה ולחץ "ייצוא קובץ".');
+  }
+}
+var cur=function(){return DB[P]};
+var listEx=function(){return cur().program[wk]};
+
+/* ============ helpers ============ */
+function e1rm(w,r,rir){ w=+w;r=+r;rir=+rir||0; return (!w||!r)?0:w*(1+(r+rir)/30); }
+function today(){ return new Date().toISOString().slice(0,10); }
+function fd(d){ var p=d.split('-'); return (+p[2])+'/'+(+p[1]); }
+function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]}); }
+function hist(n){ return cur().sessions.filter(function(s){return s.entries[n]&&s.entries[n].length}).map(function(s){return s.entries[n]}); }
+function up(h,x){ if(!h.length) return false; var l=h[h.length-1];
+  return l.length>=x.sets && l.every(function(s){return s.w&&s.r&&+s.r>=x.hi}); }
+function nextWk(){ var s=cur().sessions; if(!s.length) return 'A';
+  var last=s[s.length-1].workout; return {A:'B',B:'C',C:'A'}[last]||'A'; }
+
+/* ============ render ============ */
+function render(){
+  document.documentElement.style.setProperty('--acc',cur().accent);
+  document.getElementById('nameIn').value=cur().name;
+
+  document.getElementById('profs').innerHTML=['p1','p2'].map(function(k){
+    return '<button class="pill'+(P===k?' on':'')+'" style="'+(P===k?'background:'+DB[k].accent:'')+'" data-p="'+k+'">'+esc(DB[k].name)+'</button>';
+  }).join('');
+
+  var tabsDef=[['log','אימון'],['progress','התקדמות'],['edit','עריכה']];
+  document.getElementById('tabs').innerHTML=tabsDef.map(function(t){
+    return '<button class="pill'+(tab===t[0]?' on':'')+'" data-t="'+t[0]+'">'+t[1]+'</button>';
+  }).join('');
+
+  document.getElementById('main').innerHTML =
+    tab==='log'?viewLog():tab==='progress'?viewProgress():viewEdit();
+  renderBar(); renderTimer(); renderSheet();
+}
+
+function wkTabs(){
+  var n=nextWk();
+  return '<div class="row" style="margin-bottom:14px">'+['A','B','C'].map(function(k){
+    var pend=draftCount(P+'|'+k);
+    return '<button class="pill'+(wk===k?' on':'')+'" style="font-family:var(--mono)" data-w="'+k+'">'+k+
+      (pend?'<span style="color:var(--warn);font-size:9px"> ●'+pend+'</span>'
+           :(k===n&&wk!==k?'<span style="color:var(--ready);font-size:9px"> ●</span>':''))+'</button>';
+  }).join('')+'</div>';
+}
+
+function backupBanner(){
+  var last=cur().lastExport||0, since=cur().sessions.filter(function(s){return s.id>last}).length;
+  if(since<8) return '';
+  return '<div class="card" style="padding:12px 13px;border-color:var(--warn)">'+
+    '<div style="font-size:12.5px;line-height:1.6;margin-bottom:9px">'+since+' אימונים מאז הגיבוי האחרון. '+
+    'הנתונים יושבים בדפדפן בלבד — ניקוי היסטוריה ימחק אותם.</div>'+
+    '<button class="ghost" style="width:100%;padding:9px;color:var(--warn);border-color:var(--warn)" data-exp="1">ייצא גיבוי עכשיו</button></div>';
+}
+
+function viewLog(){
+  var out=backupBanner()+wkTabs();
+  listEx().forEach(function(x,i){
+    var h=hist(x.name), last=h[h.length-1], rows=D()[x.name]||[];
+    var filled=rows.filter(function(s){return s&&s.w&&s.r}).length;
+    out+='<div class="card"><button class="exHead" data-o="'+i+'">'+
+      '<span class="idx">'+(i+1)+'</span><span style="flex:1">'+
+      '<div class="exName">'+esc(x.name)+'</div>'+
+      '<div class="exSpec">'+x.sets+' × '+x.lo+'–'+x.hi+' · '+esc(x.rir)+' RIR</div></span>'+
+      (up(h,x)?'<span class="badge">העלה משקל</span>':'')+
+      (filled?'<span class="num" style="font-size:12px;color:var(--ready)">'+filled+'/'+x.sets+'</span>':'')+
+      '</button>';
+
+    if(open===i){
+      out+='<div class="body">';
+      if(last) out+='<div class="prev"><span>קודם: <span class="num" style="color:var(--text)">'+
+        last.map(function(s){return s.w+'×'+s.r}).join('  ')+'</span></span>'+
+        '<button class="ghost" data-copy="'+i+'">העתק</button></div>';
+      out+='<div style="display:flex;gap:4px;padding-right:26px;margin-bottom:4px" class="lab">'+
+        '<span style="flex:0 0 124px">ק"ג</span><span style="flex:0 0 114px">חזרות</span><span>RIR</span></div>';
+      for(var s=0;s<x.sets;s++){
+        var r=rows[s]||{};
+        var ok=r.r&&+r.r>=x.lo&&+r.r<=x.hi;
+        out+='<div class="setRow"><span class="num" style="font-size:12px;color:var(--muted);width:22px">'+(s+1)+'</span>'+
+          '<button class="stp" data-adj="'+i+','+s+',w,-2.5">−</button>'+
+          '<input class="fld" style="width:44px" inputmode="decimal" data-in="'+i+','+s+',w" value="'+(r.w||'')+'">'+
+          '<button class="stp" data-adj="'+i+','+s+',w,2.5">+</button>'+
+          '<button class="stp" data-adj="'+i+','+s+',r,-1">−</button>'+
+          '<input class="fld" style="width:38px" inputmode="numeric" data-in="'+i+','+s+',r" value="'+(r.r||'')+'">'+
+          '<button class="stp" data-adj="'+i+','+s+',r,1">+</button>'+
+          '<input class="fld" style="width:44px" inputmode="numeric" placeholder="–" data-in="'+i+','+s+',rir" value="'+(r.rir||'')+'">'+
+          '<span class="dot'+(r.w&&r.r?(ok?' ok':' out'):'')+'" data-dot="'+i+','+s+'"></span></div>';
+      }
+      out+='<div style="display:flex;gap:6px;margin-top:6px">'+
+        '<button class="rest" style="margin:0" data-rest="'+x.rest+'">מנוחה · '+x.rest+' שנ׳</button>'+
+        '<button class="rest" style="margin:0;flex:0 0 108px" data-sw="'+i+'">החלף תרגיל</button></div></div>';
+    }
+    out+='</div>';
+  });
+  return out;
+}
+
+function viewProgress(){
+  var S=cur().sessions;
+  if(!S.length) return '<div class="card empty">עדיין אין אימונים שמורים.<br>סיים אימון אחד כדי לראות את עקומת ההתקדמות.</div>';
+  var sets=0,ton=0;
+  S.forEach(function(s){Object.keys(s.entries).forEach(function(k){s.entries[k].forEach(function(x){sets++;ton+=(+x.w)*(+x.r)})})});
+
+  var names={},order=[];
+  S.forEach(function(s){Object.keys(s.entries).forEach(function(k){if(!names[k]){names[k]=1;order.push(k)}})});
+
+  var out='<div class="card"><div class="stats">'+
+    [['אימונים',S.length],['סטים',sets],['טונאז׳',Math.round(ton/1000)+'t']].map(function(a){
+      return '<div><div class="stat">'+a[1]+'</div><div class="lab">'+a[0]+'</div></div>'}).join('')+'</div></div>';
+
+  out+='<div class="chips">'+order.map(function(n){
+    return '<button class="chip'+(chartEx===n?' on':'')+'" data-c="'+esc(n)+'">'+esc(n)+'</button>'}).join('')+'</div>';
+
+  if(chartEx){
+    var pts=S.filter(function(s){return s.entries[chartEx]}).map(function(s){
+      var b=0; s.entries[chartEx].forEach(function(x){var v=e1rm(x.w,x.r,x.rir); if(v>b)b=v});
+      return {d:fd(s.date),v:Math.round(b*10)/10}; });
+    out+='<div class="card" style="padding:14px 10px 10px">'+
+      '<div class="lab" style="margin-bottom:8px">1RM משוער · ק"ג</div>'+chart(pts);
+    if(pts.length>1){ var df=Math.round((pts[pts.length-1].v-pts[0].v)*10)/10;
+      out+='<div style="font-size:12.5px;color:var(--muted);padding:8px 2px 0">מאז ההתחלה: '+
+        '<span class="num" style="color:'+(df>=0?'var(--ready)':'var(--warn)')+'">'+(df>0?'+':'')+df+' ק"ג</span></div>'; }
+    out+='</div>';
+  }
+
+  out+=S.slice().reverse().slice(0,15).map(function(s){
+    return '<div class="card" style="padding:12px">'+
+      '<div style="display:flex;justify-content:space-between;margin-bottom:7px;font-size:13px;font-weight:700">'+
+      '<span><span class="num" style="color:var(--acc)">'+s.workout+'</span> · '+fd(s.date)+'</span>'+
+      '<button style="background:none;color:var(--muted);font-size:11px" data-del="'+s.id+'">מחק</button></div>'+
+      Object.keys(s.entries).map(function(n){
+        return '<div class="sesRow"><span>'+esc(n)+'</span><span class="num">'+
+          s.entries[n].map(function(r){return r.w+'×'+r.r}).join('  ')+'</span></div>'}).join('')+'</div>';
+  }).join('');
+  return out;
+}
+
+function chart(p){
+  if(p.length<2) return '<div class="empty" style="padding:16px">צריך שני אימונים לפחות כדי לשרטט עקומה.</div>';
+  var W=320,H=170,L=34,B=24, vs=p.map(function(a){return a.v});
+  var mn=Math.min.apply(null,vs), mx=Math.max.apply(null,vs); if(mx===mn){mx+=1;mn-=1;}
+  mn-=(mx-mn)*.15; mx+=(mx-mn)*.12;
+  var X=function(i){return L+i*(W-L-8)/(p.length-1)}, Y=function(v){return H-B-(v-mn)/(mx-mn)*(H-B-10)};
+  var d=p.map(function(a,i){return (i?'L':'M')+X(i).toFixed(1)+' '+Y(a.v).toFixed(1)}).join(' ');
+  var g='',step=Math.max(1,Math.ceil(p.length/6));
+  [0,.5,1].forEach(function(t){ var y=10+t*(H-B-10);
+    g+='<line x1="'+L+'" y1="'+y+'" x2="'+(W-8)+'" y2="'+y+'" stroke="var(--line)" stroke-width="1"/>'+
+       '<text x="'+(L-5)+'" y="'+(y+3.5)+'" fill="var(--muted)" font-size="9" text-anchor="end" font-family="var(--mono)">'+
+       Math.round(mx-t*(mx-mn))+'</text>'; });
+  p.forEach(function(a,i){ if(i%step===0||i===p.length-1)
+    g+='<text x="'+X(i)+'" y="'+(H-8)+'" fill="var(--muted)" font-size="9" text-anchor="'+
+       (i===0?'start':i===p.length-1?'end':'middle')+'" font-family="var(--mono)">'+a.d+'</text>'; });
+  var dots=p.map(function(a,i){return '<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(a.v).toFixed(1)+'" r="3.2" fill="var(--acc)"/>'}).join('');
+  return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" preserveAspectRatio="xMidYMid meet">'+g+
+    '<path d="'+d+'" fill="none" stroke="var(--acc)" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>'+dots+'</svg>';
+}
+
+function viewEdit(){
+  var out=wkTabs()+'<div class="note">שינויים נשמרים מיד. היסטוריית האימונים לא נמחקת כששומרים תרגיל — היא נשמרת לפי שם התרגיל, אז שינוי שם מתחיל עקומה חדשה.</div><div class="card">';
+  listEx().forEach(function(x,i){
+    var f=function(k,lb,v){return '<div class="edF"><span class="lab">'+lb+'</span>'+
+      '<input class="n" inputmode="numeric" data-e="'+i+','+k+'" value="'+esc(v)+'"></div>'};
+    out+='<div class="edRow">'+
+      '<div class="edTop"><input style="flex:1" data-e="'+i+',name" value="'+esc(x.name)+'">'+
+      '<button class="mini" data-sw="'+i+'" title="החלף">\u21c4</button>'+
+      '<button class="mini" data-mv="'+i+'"'+(i?'':' disabled')+'>\u2191</button>'+
+      '<button class="mini" data-rm="'+i+'" style="color:var(--warn)">\u00d7</button></div>'+
+      '<div class="edBot">'+f('sets','\u05e1\u05d8\u05d9\u05dd',x.sets)+
+      f('lo','\u05de\u05d9\u05e0\u05f3',x.lo)+f('hi','\u05de\u05e7\u05e1\u05f3',x.hi)+
+      '<div class="edF"><span class="lab">RIR</span><input class="n" data-e="'+i+',rir" value="'+esc(x.rir)+'"></div>'+
+      f('rest','\u05de\u05e0\u05d5\u05d7\u05d4',x.rest)+'</div></div>';
+  });
+  out+='</div><div class="row" style="margin-bottom:14px">'+
+    '<button class="pill" data-add="1">+ תרגיל</button></div>'+
+    '<div class="card" style="padding:13px"><div class="lab" style="margin-bottom:9px">ייצוא לאקסל</div>'+
+    '<button class="pill" style="width:100%" data-xls="1">ייצוא לאקסל (.xlsx)</button>'+
+    '<div class="note" style="padding-top:12px">קובץ אקסל עם שורה לכל סט (תאריך, אימון, תרגיל, ק"ג, חזרות, RIR), סיכום לכל אימון, והתוכנית הנוכחית. אפשר לשמור ל"קבצים" / דרייב או לשלוח בוואטסאפ.</div></div>'+
+    '<div class="card" style="padding:13px"><div class="lab" style="margin-bottom:9px">גיבוי נתונים</div>'+
+    '<div class="row"><button class="pill" data-exp="1">ייצוא קובץ</button>'+
+    '<button class="pill" data-imp="1">ייבוא קובץ</button></div>'+
+    '<div class="note" style="padding-top:12px">הנתונים נשמרים במכשיר הזה בלבד. קובץ הגיבוי (JSON) הוא היחיד שאפשר לייבא חזרה — כדאי לייצא פעם בחודש.</div></div>'+
+    installCard()+
+    '<input type="file" id="impFile" accept="application/json" style="display:none">';
+  return out;
+}
+
+/* ============ install hint ============ */
+var installPrompt=null, standalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+window.addEventListener('beforeinstallprompt',function(ev){ ev.preventDefault(); installPrompt=ev; if(tab==='edit') render(); });
+function installCard(){
+  if(standalone) return '';
+  var ios=/iPhone|iPad|iPod/.test(navigator.userAgent);
+  var body = installPrompt
+    ? '<button class="pill" style="width:100%" data-inst="1">התקן על המסך הראשי</button>'
+    : ios
+      ? '<div class="note" style="padding:0">בספארי: לחץ על כפתור השיתוף <span style="color:var(--text)">(הריבוע עם החץ)</span> ← "הוסף למסך הבית" ← "הוסף". האפליקציה תיפתח במסך מלא ותעבוד גם בלי אינטרנט.</div>'
+      : '<div class="note" style="padding:0">בכרום: תפריט ⋮ ← "התקנת אפליקציה" / "הוספה למסך הבית". האפליקציה תיפתח במסך מלא ותעבוד גם בלי אינטרנט.</div>';
+  return '<div class="card" style="padding:13px"><div class="lab" style="margin-bottom:9px">התקנה בטלפון</div>'+body+'</div>';
+}
+
+/* ============ excel export ============ */
+function deliverFile(blob,name){
+  // Share sheet (iPhone/Android) lets the user save to Files/Drive or send on WhatsApp; otherwise download.
+  try{
+    var file=new File([blob],name,{type:blob.type});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      navigator.share({files:[file],title:name}).catch(function(err){ if(err&&err.name!=='AbortError') downloadBlob(blob,name); });
+      return;
+    }
+  }catch(err){}
+  downloadBlob(blob,name);
+}
+function downloadBlob(blob,name){
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); },4000);
+}
+function excelDate(iso){ var p=iso.split('-'); return new Date(+p[0],+p[1]-1,+p[2]); }
+function buildWorkbook(){
+  var sets=[['תאריך','פרופיל','אימון','תרגיל','סט','ק"ג','חזרות','RIR','נפח (ק"ג×חזרות)','1RM משוער']];
+  var sess=[['תאריך','פרופיל','אימון','תרגילים','סטים','טונאז׳ (ק"ג)']];
+  var prog=[['פרופיל','אימון','#','תרגיל','סטים','מינ׳ חזרות','מקס׳ חזרות','RIR','מנוחה (שנ׳)']];
+  ['p1','p2'].forEach(function(k){
+    var pr=DB[k];
+    pr.sessions.slice().sort(function(a,b){ return a.date<b.date?-1:a.date>b.date?1:a.id-b.id; }).forEach(function(s){
+      var nEx=0,nSets=0,ton=0;
+      Object.keys(s.entries).forEach(function(n){
+        nEx++;
+        s.entries[n].forEach(function(r,i){
+          var w=+r.w||0, rp=+r.r||0, rir=r.rir===''||r.rir==null?'':(+r.rir||0);
+          nSets++; ton+=w*rp;
+          sets.push([excelDate(s.date),pr.name,s.workout,n,i+1,w,rp,rir,w*rp,Math.round(e1rm(w,rp,rir)*10)/10]);
+        });
+      });
+      sess.push([excelDate(s.date),pr.name,s.workout,nEx,nSets,ton]);
+    });
+    ['A','B','C'].forEach(function(w){
+      (pr.program[w]||[]).forEach(function(x,i){ prog.push([pr.name,w,i+1,x.name,x.sets,x.lo,x.hi,x.rir,x.rest]); });
+    });
+  });
+  var wb=XLSX.utils.book_new();
+  wb.Workbook={Views:[{RTL:true}]};
+  function add(rows,title,widths){
+    var ws=XLSX.utils.aoa_to_sheet(rows,{cellDates:true});
+    ws['!cols']=widths.map(function(w){return {wch:w}});
+    var range=XLSX.utils.decode_range(ws['!ref']);
+    for(var r=1;r<=range.e.r;r++){ var c=ws[XLSX.utils.encode_cell({r:r,c:0})]; if(c&&c.t==='d') c.z='dd/mm/yyyy'; }
+    XLSX.utils.book_append_sheet(wb,ws,title);
+  }
+  add(sets,'סטים',[12,12,7,30,5,8,8,6,16,12]);
+  add(sess,'אימונים',[12,12,7,9,7,12]);
+  add(prog,'תוכנית',[12,7,4,30,6,11,11,6,11]);
+  return wb;
+}
+function exportExcel(){
+  var out=XLSX.write(buildWorkbook(),{bookType:'xlsx',type:'array'});
+  deliverFile(new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),'gymlog-'+today()+'.xlsx');
+}
+
+function renderSheet(){
+  var box=document.getElementById('sheetBox');
+  if(!sheet){ box.innerHTML=''; document.body.style.overflow=''; return; }
+  document.body.style.overflow='hidden';
+  var x=listEx()[sheet.i]; if(!x){ sheet=null; box.innerHTML=''; return; }
+  var cat=sheet.cat||x.cat||'other';
+  var opts=(LIB[cat]&&LIB[cat].x)||[];
+  box.innerHTML='<div class="sheetBg" data-close="1"></div><div class="sheet">'+
+    '<div class="grab"></div><div class="sheetHead">'+
+      '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px">'+
+        '<span style="font-weight:700;font-size:15px">החלפת תרגיל</span>'+
+        '<button style="background:none;color:var(--muted);font-size:12px" data-close="1">סגור</button></div>'+
+      '<div class="chips" style="padding-bottom:2px">'+CATS.map(function(c){
+        return '<button class="chip'+(c===cat?' on':'')+'" data-sc="'+c+'">'+LIB[c].t+'</button>'}).join('')+'</div>'+
+    '</div><div class="sheetBody">'+
+      opts.map(function(n){ var cu=(n===x.name);
+        return '<button class="opt'+(cu?' cur':'')+'" data-pick="'+esc(n)+'|'+cat+'">'+
+          '<span>'+esc(n)+'</span>'+(cu?'<span style="font-size:11px">נוכחי</span>':'')+'</button>'}).join('')+
+      '<div style="margin-top:12px"><div class="lab" style="margin-bottom:6px">שם חופשי</div>'+
+      '<div style="display:flex;gap:6px"><input id="customEx" placeholder="'+esc(x.name)+'" '+
+      'style="flex:1;background:var(--bg);border:1px solid var(--line);border-radius:8px;color:var(--text);height:44px;font-size:16px;padding:0 10px;outline:none">'+
+      '<button class="ghost" style="padding:0 14px" data-custom="'+cat+'">שמור</button></div></div>'+
+      '<div class="note" style="padding-top:14px">הסטים, טווח החזרות וזמן המנוחה נשמרים. ההיסטוריה נצברת לפי שם התרגיל, אז תרגיל חדש מתחיל עקומת התקדמות משלו.</div>'+
+    '</div></div>';
+}
+
+function renderBar(){
+  var b=document.getElementById('barBox');
+  if(tab!=='log'){ b.innerHTML=''; return; }
+  var n=draftCount(dkey());
+  b.innerHTML='<div class="bar" style="flex-direction:column;align-items:stretch;gap:7px">'+
+    (n?'<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--muted)">'+
+       '<span>\u2713 נשמר אוטומטית</span><button style="background:none;color:var(--warn);font-size:11px" id="disc">בטל טיוטה</button></div>':'')+
+    '<div style="display:flex;gap:10px;align-items:center">'+
+    '<span style="font-size:12px;color:var(--muted)"><span class="num" id="cnt" style="font-size:16px;color:'+
+      (n?'var(--ready)':'var(--muted)')+'">'+n+'</span> סטים</span>'+
+    '<button class="primary" id="fin"'+(n?'':' disabled')+'>סיים ושמור אימון</button></div></div>';
+}
+function renderTimer(){
+  var t=document.getElementById('timerBox');
+  if(tsec<=0){ t.innerHTML=''; return; }
+  t.innerHTML='<div class="timer"><span style="font-size:13px">מנוחה</span>'+
+    '<span class="num" style="font-size:20px">'+Math.floor(tsec/60)+':'+String(tsec%60).padStart(2,'0')+'</span>'+
+    '<button style="background:rgba(16,19,25,.18);border-radius:6px;padding:6px 11px;font-weight:700" id="stopT">עצור</button></div>';
+}
+
+/* ============ events ============ */
+function cell(i,s,f,v){
+  var n=listEx()[i].name;
+  var dd=D();
+  if(!dd[n]) dd[n]=[];
+  if(!dd[n][s]) dd[n][s]={};
+  dd[n][s][f]=v;
+  queueDraft();
+}
+function getCell(i,s,f){ var n=listEx()[i].name, d=D(); return (d[n]&&d[n][s]&&d[n][s][f])||''; }
+
+document.addEventListener('click',function(ev){
+  if(ev.target.closest('[data-close]')){ sheet=null; renderSheet(); return; }
+  var t=ev.target.closest('button'); if(!t) return;
+  var d=t.dataset;
+
+  if(d.sw!==undefined){ sheet={i:+d.sw,cat:(listEx()[+d.sw].cat||'other')}; renderSheet(); return; }
+  if(d.sc){ sheet.cat=d.sc; renderSheet(); return; }
+  if(d.pick){
+    var pv=d.pick.split('|'), x3=listEx()[sheet.i];
+    x3.name=pv[0]; x3.cat=pv[1]; save(); sheet=null; render(); return;
+  }
+  if(d.custom!==undefined){
+    var inp=document.getElementById('customEx'), v=(inp&&inp.value||'').trim();
+    if(!v){ inp && inp.focus(); return; }
+    var x4=listEx()[sheet.i]; x4.name=v; x4.cat=NAME2CAT[v]||d.custom||'other';
+    save(); sheet=null; render(); return;
+  }
+  if(d.p){ saveDrafts(); P=d.p; open=-1; chartEx=null; wk='A'; render(); return; }
+  if(d.t){ tab=d.t; render(); return; }
+  if(d.w){ saveDrafts(); wk=d.w; open=-1; render(); return; }
+  if(d.o!==undefined){ open = open===+d.o ? -1 : +d.o; render(); return; }
+  if(d.c){ chartEx = chartEx===d.c ? null : d.c; render(); return; }
+  if(d.rest){ tsec=+d.rest; clearInterval(tid); tid=setInterval(function(){ tsec--; if(tsec<=0){clearInterval(tid);tsec=0;} renderTimer(); },1000); renderTimer(); return; }
+  if(t.id==='disc'){
+    if(confirm('לבטל את הטיוטה של אימון '+wk+'? הנתונים שהוזנו יימחקו.')){
+      delete DRAFTS[dkey()]; saveDrafts(); render();
+    } return;
+  }
+  if(t.id==='stopT'){ clearInterval(tid); tsec=0; renderTimer(); return; }
+
+  if(d.copy!==undefined){
+    var x=listEx()[+d.copy], h=hist(x.name);
+    if(h.length){ D()[x.name]=h[h.length-1].map(function(s){return {w:s.w,r:'',rir:''}}); saveDrafts(); render(); }
+    return;
+  }
+  if(d.adj){
+    var a=d.adj.split(','), i=+a[0], s=+a[1], f=a[2], st=+a[3];
+    var v=Math.max(0,Math.round(((+getCell(i,s,f)||0)+st)*100)/100);
+    cell(i,s,f,v); render(); return;
+  }
+  if(d.del){
+    if(!confirm('למחוק את האימון הזה?')) return;
+    cur().sessions=cur().sessions.filter(function(s){return s.id!=d.del}); save(); render(); return;
+  }
+  if(d.mv){ var j=+d.mv; if(j>0){ var L=listEx(); var tmp=L[j-1]; L[j-1]=L[j]; L[j]=tmp; save(); render(); } return; }
+  if(d.rm){ if(confirm('להסיר את התרגיל מהתוכנית?')){ listEx().splice(+d.rm,1); save(); render(); } return; }
+  if(d.add){ listEx().push(e('תרגיל חדש',3,8,12,'2',90)); save(); render(); return; }
+
+  if(d.exp){
+    deliverFile(new Blob([JSON.stringify(DB,null,1)],{type:'application/json'}),'gymlog-'+today()+'.json');
+    cur().lastExport=Date.now(); save(); render(); return;
+  }
+  if(d.xls){ exportExcel(); return; }
+  if(d.inst){ if(installPrompt){ installPrompt.prompt(); installPrompt=null; } return; }
+  if(d.imp){ document.getElementById('impFile').click(); return; }
+
+  if(t.id==='fin'){
+    var entries={}, dd=D();
+    Object.keys(dd).forEach(function(k){
+      var c=(dd[k]||[]).filter(function(s){return s&&s.w&&s.r});
+      if(c.length) entries[k]=c;
+    });
+    if(!Object.keys(entries).length) return;
+    cur().sessions.push({id:Date.now(),date:today(),workout:wk,entries:entries});
+    DB[P].lastSave=Date.now();
+    save(); delete DRAFTS[dkey()]; saveDrafts(); open=-1; tab='progress'; render();
+  }
+});
+
+document.addEventListener('input',function(ev){
+  var el=ev.target, d=el.dataset;
+  if(d.in){
+    var a=d.in.split(','), i=+a[0], s=+a[1], f=a[2];
+    cell(i,s,f,el.value);
+    var x=listEx()[i], r=(D()[x.name]||[])[s]||{};
+    var dot=document.querySelector('[data-dot="'+i+','+s+'"]');
+    if(dot){ dot.className='dot'+(r.w&&r.r?((+r.r>=x.lo&&+r.r<=x.hi)?' ok':' out'):''); }
+    renderBar();   // rebuilds counter + autosave notice; input focus is unaffected
+    return;
+  }
+  if(d.e){
+    var b=d.e.split(','), k=+b[0], fld=b[1], x2=listEx()[k];
+    x2[fld] = (fld==='name'||fld==='rir') ? el.value : (+el.value||0);
+    save(); return;
+  }
+  if(el.id==='nameIn'){ cur().name=el.value; save();
+    var pb=document.querySelector('[data-p="'+P+'"]'); if(pb) pb.textContent=el.value; }
+});
+
+document.addEventListener('change',function(ev){
+  if(ev.target.id!=='impFile') return;
+  var f=ev.target.files[0]; if(!f) return;
+  var rd=new FileReader();
+  rd.onload=function(){
+    try{
+      var d=JSON.parse(rd.result);
+      if(!d.p1||!d.p2) throw 0;
+      if(!confirm('לייבא ולהחליף את כל הנתונים הקיימים?')) return;
+      DB=d; save(); DRAFTS={}; saveDrafts(); open=-1; render();
+    }catch(err){ alert('הקובץ לא תקין. יש לבחור קובץ גיבוי שיוצא מהיומן.'); }
+  };
+  rd.readAsText(f);
+});
+
+document.addEventListener('keydown',function(ev){
+  if(ev.key==='Escape'&&sheet){ sheet=null; renderSheet(); }
+});
+
+document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='hidden') saveDrafts(); });
+window.addEventListener('pagehide',saveDrafts);
+window.addEventListener('blur',saveDrafts);
+
+load(); render();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load',function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });
+}
+</script>
+</body>
+</html>
